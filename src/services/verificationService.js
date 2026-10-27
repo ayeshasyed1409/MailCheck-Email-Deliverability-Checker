@@ -1,12 +1,16 @@
 /**
  * Verification API Service
  *
- * Communicates with the Python Flask backend at http://127.0.0.1:5000
+ * Communicates with the Python Flask backend.
+ * In production, uses VITE_API_BASE_URL environment variable (set in Vercel).
+ * Falls back to http://127.0.0.1:5000 for local development.
+ *
  * Handles batch email verification requests, response mapping,
  * and comprehensive network/server error handling.
  */
 
-const API_BASE_URL = 'http://127.0.0.1:5000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
 
 export const STATUS_LABELS = {
   DELIVERED: 'Likely Delivered',
@@ -22,7 +26,7 @@ export const STATUS_LABELS = {
  */
 export async function checkBackendHealth() {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const response = await fetch(`${API_BASE_URL}/api/health`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -44,7 +48,7 @@ export async function checkBackendHealth() {
   } catch {
     return {
       isHealthy: false,
-      message: 'Cannot connect to backend server at http://127.0.0.1:5000',
+      message: `Cannot connect to backend server at ${API_BASE_URL}`,
     };
   }
 }
@@ -63,7 +67,7 @@ export async function verifyEmails(emailList) {
 
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}/verify`, {
+    response = await fetch(`${API_BASE_URL}/api/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,8 +78,8 @@ export async function verifyEmails(emailList) {
   } catch {
     // Network errors occur when the Flask backend is not running or blocked by CORS/firewall
     throw new Error(
-      'Unable to connect to the verification server at http://127.0.0.1:5000. ' +
-      'Please make sure the Python Flask backend is running (python app.py).'
+      `Unable to connect to the verification server at ${API_BASE_URL}. ` +
+      'Please make sure the Python Flask backend is running.'
     );
   }
 
